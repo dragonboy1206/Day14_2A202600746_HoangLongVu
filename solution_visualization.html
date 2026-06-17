@@ -1,0 +1,1385 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Truc quan hoa solution.py - Day 14 Evaluation Pipeline</title>
+  <style>
+    :root {
+      --bg: #10130f;
+      --panel: #181d17;
+      --panel-2: #20281d;
+      --ink: #f1f4ea;
+      --muted: #a8b29c;
+      --line: #34412f;
+      --lime: #c7f35b;
+      --cyan: #70d8d0;
+      --amber: #f6bc5f;
+      --rose: #ec6f7d;
+      --blue: #8ea8ff;
+      --shadow: 0 22px 70px rgba(0, 0, 0, .32);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px) 0 0 / 42px 42px,
+        linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px) 0 0 / 42px 42px,
+        radial-gradient(circle at 12% 20%, rgba(199, 243, 91, .14), transparent 25%),
+        radial-gradient(circle at 88% 8%, rgba(112, 216, 208, .11), transparent 24%),
+        var(--bg);
+      font-family: "Segoe UI", "Noto Sans", Tahoma, sans-serif;
+      line-height: 1.55;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid rgba(199, 243, 91, .22);
+      background: rgba(16, 19, 15, .84);
+      backdrop-filter: blur(16px);
+    }
+
+    .topbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 64px;
+      gap: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      font-size: 13px;
+    }
+
+    .mark {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      color: #10130f;
+      background: var(--lime);
+      border-radius: 6px;
+      box-shadow: 0 0 0 5px rgba(199, 243, 91, .1);
+      font-weight: 900;
+    }
+
+    nav {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    nav a {
+      color: var(--muted);
+      border: 1px solid transparent;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    nav a:hover {
+      color: var(--ink);
+      border-color: rgba(199, 243, 91, .26);
+      background: rgba(199, 243, 91, .07);
+    }
+
+    .hero {
+      min-height: 560px;
+      display: grid;
+      align-items: center;
+      padding: 74px 0 36px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(320px, .95fr);
+      gap: 34px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--lime);
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 34px;
+      height: 2px;
+      background: var(--lime);
+    }
+
+    h1 {
+      margin: 18px 0 18px;
+      max-width: 820px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(44px, 6vw, 82px);
+      line-height: .98;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 680px;
+      color: #d8decf;
+      font-size: 18px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      border: 1px solid rgba(199, 243, 91, .4);
+      background: var(--lime);
+      color: #10130f;
+      border-radius: 6px;
+      padding: 11px 14px;
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    .button.secondary {
+      background: rgba(255, 255, 255, .04);
+      color: var(--ink);
+      border-color: rgba(255, 255, 255, .14);
+    }
+
+    .overview-panel {
+      border: 1px solid rgba(199, 243, 91, .22);
+      background: linear-gradient(145deg, rgba(32, 40, 29, .94), rgba(14, 17, 13, .96));
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .status-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .stat {
+      min-height: 104px;
+      border: 1px solid rgba(255, 255, 255, .12);
+      background: rgba(255, 255, 255, .045);
+      border-radius: 7px;
+      padding: 14px;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 31px;
+      line-height: 1;
+      margin-bottom: 8px;
+      color: var(--lime);
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .mini-terminal {
+      border: 1px solid rgba(112, 216, 208, .24);
+      border-radius: 7px;
+      overflow: hidden;
+      background: #090c08;
+    }
+
+    .terminal-head {
+      display: flex;
+      gap: 7px;
+      padding: 10px;
+      border-bottom: 1px solid rgba(112, 216, 208, .17);
+      background: rgba(112, 216, 208, .08);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--rose);
+    }
+
+    .dot:nth-child(2) {
+      background: var(--amber);
+    }
+
+    .dot:nth-child(3) {
+      background: var(--lime);
+    }
+
+    pre {
+      margin: 0;
+      padding: 16px;
+      overflow: auto;
+      color: #dcead0;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    section {
+      padding: 44px 0;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(30px, 4vw, 48px);
+      letter-spacing: 0;
+    }
+
+    .section-head p {
+      max-width: 520px;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+    }
+
+    .step {
+      position: relative;
+      min-height: 208px;
+      border: 1px solid rgba(255, 255, 255, .12);
+      background: rgba(24, 29, 23, .82);
+      border-radius: var(--radius);
+      padding: 16px;
+      overflow: hidden;
+    }
+
+    .step::after {
+      content: "";
+      position: absolute;
+      right: -24px;
+      bottom: -24px;
+      width: 82px;
+      height: 82px;
+      border: 1px solid rgba(199, 243, 91, .25);
+      transform: rotate(18deg);
+    }
+
+    .step-number {
+      color: var(--lime);
+      font-weight: 900;
+      font-size: 13px;
+      letter-spacing: .1em;
+    }
+
+    .step h3,
+    .module h3,
+    .metric h3 {
+      margin: 10px 0 8px;
+      font-size: 18px;
+    }
+
+    .step p,
+    .module p,
+    .metric p,
+    .file p {
+      color: var(--muted);
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .pipe-node {
+      position: relative;
+      border: 1px solid rgba(112, 216, 208, .25);
+      background: rgba(112, 216, 208, .06);
+      border-radius: var(--radius);
+      padding: 14px;
+      min-height: 132px;
+    }
+
+    .pipe-node:not(:last-child)::after {
+      content: ">";
+      position: absolute;
+      right: -10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 19px;
+      height: 19px;
+      display: grid;
+      place-items: center;
+      color: #10130f;
+      background: var(--cyan);
+      border-radius: 50%;
+      font-weight: 900;
+      z-index: 2;
+      font-size: 12px;
+    }
+
+    .pipe-node b {
+      display: block;
+      color: var(--cyan);
+      margin-bottom: 8px;
+    }
+
+    .pipe-node span {
+      color: #d8decf;
+      font-size: 13px;
+    }
+
+    .modules {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .module {
+      border: 1px solid rgba(255, 255, 255, .12);
+      background: var(--panel);
+      border-radius: var(--radius);
+      padding: 18px;
+      min-height: 240px;
+    }
+
+    .module .tag {
+      display: inline-block;
+      color: #10130f;
+      background: var(--amber);
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-weight: 900;
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .module ul {
+      padding-left: 18px;
+      color: #d8decf;
+      margin: 14px 0 0;
+      font-size: 14px;
+    }
+
+    .module li + li {
+      margin-top: 7px;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+    }
+
+    .metric {
+      border: 1px solid rgba(199, 243, 91, .18);
+      background: linear-gradient(180deg, rgba(199, 243, 91, .08), rgba(24, 29, 23, .9));
+      border-radius: var(--radius);
+      padding: 16px;
+      min-height: 230px;
+    }
+
+    .formula {
+      margin-top: 12px;
+      color: var(--lime);
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12px;
+      border-top: 1px solid rgba(199, 243, 91, .16);
+      padding-top: 12px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .deep-grid {
+      display: grid;
+      grid-template-columns: minmax(260px, .82fr) minmax(0, 1.18fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .index-panel,
+    .explain-panel {
+      border: 1px solid rgba(255, 255, 255, .12);
+      background: rgba(24, 29, 23, .86);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .index-panel {
+      position: sticky;
+      top: 82px;
+    }
+
+    .index-panel a {
+      display: block;
+      color: var(--muted);
+      padding: 9px 10px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      font-size: 14px;
+    }
+
+    .index-panel a:hover {
+      color: var(--ink);
+      border-color: rgba(199, 243, 91, .22);
+      background: rgba(199, 243, 91, .06);
+    }
+
+    .explain-panel + .explain-panel {
+      margin-top: 14px;
+    }
+
+    .explain-panel h3 {
+      margin: 0 0 8px;
+      font-size: 22px;
+    }
+
+    .explain-panel p {
+      color: #d8decf;
+      margin: 0 0 12px;
+    }
+
+    .codebox {
+      border: 1px solid rgba(112, 216, 208, .2);
+      background: #0b0f0a;
+      border-radius: 7px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+
+    .codebox .label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--cyan);
+      background: rgba(112, 216, 208, .08);
+      border-bottom: 1px solid rgba(112, 216, 208, .16);
+      padding: 9px 12px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .decision-tree {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .decision {
+      border: 1px solid rgba(246, 188, 95, .22);
+      background: rgba(246, 188, 95, .065);
+      border-radius: 7px;
+      padding: 12px;
+    }
+
+    .decision b {
+      color: var(--amber);
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .chip {
+      border: 1px solid rgba(255, 255, 255, .14);
+      color: #d8decf;
+      background: rgba(255, 255, 255, .045);
+      border-radius: 999px;
+      padding: 6px 9px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    details {
+      border: 1px solid rgba(255, 255, 255, .12);
+      background: rgba(255, 255, 255, .035);
+      border-radius: 7px;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    details + details {
+      margin-top: 10px;
+    }
+
+    summary {
+      cursor: pointer;
+      padding: 12px 14px;
+      color: var(--lime);
+      font-weight: 800;
+    }
+
+    details p,
+    details ul {
+      margin: 0;
+      padding: 0 14px 14px;
+      color: #d8decf;
+      font-size: 14px;
+    }
+
+    details ul {
+      padding-left: 32px;
+    }
+
+    .example-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .example-card {
+      border: 1px solid rgba(255, 255, 255, .12);
+      background: rgba(255, 255, 255, .04);
+      border-radius: 7px;
+      padding: 14px;
+    }
+
+    .example-card strong {
+      color: var(--lime);
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .example-card span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: var(--radius);
+      background: rgba(24, 29, 23, .82);
+      border: 1px solid rgba(255, 255, 255, .12);
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, .1);
+      font-size: 14px;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--lime);
+      background: rgba(199, 243, 91, .08);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .scorebar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .bar {
+      flex: 1;
+      height: 8px;
+      background: rgba(255, 255, 255, .1);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .bar i {
+      display: block;
+      height: 100%;
+      background: var(--lime);
+      border-radius: inherit;
+    }
+
+    .bar.relevance i {
+      background: var(--cyan);
+    }
+
+    .bar.completeness i {
+      background: var(--amber);
+    }
+
+    .files {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .file {
+      border: 1px solid rgba(255, 255, 255, .12);
+      background: rgba(255, 255, 255, .045);
+      border-radius: var(--radius);
+      padding: 16px;
+      min-height: 156px;
+    }
+
+    .file code {
+      color: var(--lime);
+      font-weight: 800;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .callout {
+      border-left: 4px solid var(--lime);
+      background: rgba(199, 243, 91, .08);
+      padding: 18px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      color: #dcead0;
+    }
+
+    .footer {
+      padding: 34px 0 50px;
+      color: var(--muted);
+      border-top: 1px solid rgba(255, 255, 255, .1);
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid,
+      .two-col,
+      .deep-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .timeline,
+      .pipeline,
+      .modules,
+      .metrics-grid,
+      .files,
+      .example-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .pipe-node:not(:last-child)::after {
+        display: none;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .shell {
+        width: min(100% - 22px, 1180px);
+      }
+
+      .topbar-inner,
+      .section-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .status-strip,
+      .timeline,
+      .pipeline,
+      .modules,
+      .metrics-grid,
+      .files,
+      .example-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .index-panel {
+        position: static;
+      }
+
+      .hero {
+        min-height: auto;
+        padding-top: 42px;
+      }
+
+      h1 {
+        font-size: 42px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <a class="brand" href="#top" aria-label="Ve dau trang">
+        <span class="mark">14</span>
+        <span>AI Evaluation Pipeline</span>
+      </a>
+      <nav aria-label="Dieu huong">
+        <a href="#timeline">Quy trình</a>
+        <a href="#pipeline">Pipeline</a>
+        <a href="#modules">Code</a>
+        <a href="#metrics">Metrics</a>
+        <a href="#walkthrough">Chi tiết</a>
+        <a href="#report">Kết quả</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="shell hero-grid">
+        <div>
+          <div class="eyebrow">Day 14 · RAG evaluation</div>
+          <h1>Trực quan hóa toàn bộ phần đã làm trong solution.py</h1>
+          <p class="lead">
+            Trang này tóm tắt cách mình hoàn thiện bài lab: từ data model, metric RAGAS-inspired,
+            LLM-as-Judge, benchmark runner, regression detection cho tới failure analysis và báo cáo nộp bài.
+          </p>
+          <div class="hero-actions">
+            <a class="button" href="#pipeline">Xem pipeline</a>
+            <a class="button secondary" href="#modules">Xem từng khối code</a>
+          </div>
+        </div>
+
+        <aside class="overview-panel" aria-label="Tong quan ket qua">
+          <div class="status-strip">
+            <div class="stat">
+              <strong>39/39</strong>
+              <span>unit tests pass bằng `python tests\test_solution.py`</span>
+            </div>
+            <div class="stat">
+              <strong>20</strong>
+              <span>QA pairs trong golden dataset stratified</span>
+            </div>
+            <div class="stat">
+              <strong>5</strong>
+              <span>nhóm chức năng chính trong `solution.py`</span>
+            </div>
+          </div>
+          <div class="mini-terminal">
+            <div class="terminal-head" aria-hidden="true">
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+            <pre><code>&gt; python tests\test_solution.py
+.......................................
+----------------------------------------------------------------------
+Ran 39 tests in 0.003s
+
+OK</code></pre>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="timeline">
+      <div class="shell">
+        <div class="section-head">
+          <h2>Quy trình từ đầu đến cuối</h2>
+          <p>Mỗi bước bám theo README và test suite, tránh làm lệch API mà bài lab yêu cầu.</p>
+        </div>
+        <div class="timeline">
+          <article class="step">
+            <div class="step-number">01</div>
+            <h3>Đọc README</h3>
+            <p>Xác định sản phẩm nộp bài: `solution/solution.py`, `exercises.md`, `reflection.md` và test pass.</p>
+          </article>
+          <article class="step">
+            <div class="step-number">02</div>
+            <h3>Đọc test</h3>
+            <p>Rút ra chữ ký hàm, field dataclass, threshold pass/fail và output mà từng test mong đợi.</p>
+          </article>
+          <article class="step">
+            <div class="step-number">03</div>
+            <h3>Implement code</h3>
+            <p>Hoàn thiện toàn bộ TODO trong pipeline: metric, judge, runner, regression và analyzer.</p>
+          </article>
+          <article class="step">
+            <div class="step-number">04</div>
+            <h3>Viết báo cáo</h3>
+            <p>Điền dataset 20 QA, benchmark result, 5 Whys, improvement log và CI/CD strategy.</p>
+          </article>
+          <article class="step">
+            <div class="step-number">05</div>
+            <h3>Đồng bộ file</h3>
+            <p>Copy implementation sang cả `template.py` để file đang mở trong IDE cũng không còn TODO.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="pipeline">
+      <div class="shell">
+        <div class="section-head">
+          <h2>Sơ đồ evaluation pipeline</h2>
+          <p>Đây là luồng dữ liệu chính mà `BenchmarkRunner.run()` thực hiện khi chấm agent.</p>
+        </div>
+        <div class="pipeline">
+          <div class="pipe-node">
+            <b>QAPair</b>
+            <span>Chứa question, expected answer, context, metadata và retrieved_contexts.</span>
+          </div>
+          <div class="pipe-node">
+            <b>Agent</b>
+            <span>`agent_fn(question)` sinh ra actual answer để đem đi đánh giá.</span>
+          </div>
+          <div class="pipe-node">
+            <b>RAGASEvaluator</b>
+            <span>Tính faithfulness, relevance, completeness và retrieval metrics.</span>
+          </div>
+          <div class="pipe-node">
+            <b>EvalResult</b>
+            <span>Lưu điểm, pass/fail, failure_type và overall_score.</span>
+          </div>
+          <div class="pipe-node">
+            <b>Report</b>
+            <span>Tổng hợp pass rate, average scores và phân bố lỗi.</span>
+          </div>
+          <div class="pipe-node">
+            <b>FailureAnalyzer</b>
+            <span>Gom cụm lỗi, tìm root cause và tạo improvement log.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="modules">
+      <div class="shell">
+        <div class="section-head">
+          <h2>Các khối code đã hoàn thiện</h2>
+          <p>Mỗi khối tương ứng với một phần quan trọng trong `solution/solution.py`.</p>
+        </div>
+        <div class="modules">
+          <article class="module">
+            <span class="tag">Task 1</span>
+            <h3>Data Models</h3>
+            <p>`QAPair` và `EvalResult` là nền tảng để truyền dữ liệu qua pipeline.</p>
+            <ul>
+              <li>`QAPair`: question, expected_answer, context, metadata, retrieved_contexts.</li>
+              <li>`EvalResult`: actual_answer, scores, passed, failure_type.</li>
+              <li>`overall_score()`: trung bình 3 metric answer-side.</li>
+            </ul>
+          </article>
+
+          <article class="module">
+            <span class="tag">Task 2</span>
+            <h3>RAGASEvaluator</h3>
+            <p>Chấm chất lượng answer bằng word-overlap heuristic.</p>
+            <ul>
+              <li>`evaluate_faithfulness`: answer có grounded trong context không.</li>
+              <li>`evaluate_relevance`: answer có bám câu hỏi không.</li>
+              <li>`evaluate_completeness`: answer có cover expected answer không.</li>
+            </ul>
+          </article>
+
+          <article class="module">
+            <span class="tag">Task 2b</span>
+            <h3>Retrieval Metrics</h3>
+            <p>Chấm riêng bước get-context, chạy trên danh sách chunks.</p>
+            <ul>
+              <li>`evaluate_context_recall`: union chunks phủ expected answer bao nhiêu.</li>
+              <li>`evaluate_context_precision`: Average Precision rank-aware.</li>
+              <li>`rerank_by_overlap`: đưa chunk liên quan lên trước.</li>
+            </ul>
+          </article>
+
+          <article class="module">
+            <span class="tag">Task 3</span>
+            <h3>LLMJudge</h3>
+            <p>Mô phỏng LLM-as-Judge bằng prompt rubric và JSON parsing.</p>
+            <ul>
+              <li>`score_response`: gọi judge function, parse scores, fallback 0.5 nếu lỗi.</li>
+              <li>`detect_bias`: phát hiện positional, leniency, severity bias.</li>
+            </ul>
+          </article>
+
+          <article class="module">
+            <span class="tag">Task 4</span>
+            <h3>BenchmarkRunner</h3>
+            <p>Chạy toàn bộ QA pairs qua agent và tạo báo cáo aggregate.</p>
+            <ul>
+              <li>`run`: agent answer -> evaluator -> EvalResult.</li>
+              <li>`generate_report`: total, pass_rate, avg scores, failure types.</li>
+              <li>`run_regression`: phát hiện drop lớn hơn 0.05.</li>
+            </ul>
+          </article>
+
+          <article class="module">
+            <span class="tag">Task 5</span>
+            <h3>FailureAnalyzer</h3>
+            <p>Biến điểm thấp thành insight có thể hành động.</p>
+            <ul>
+              <li>`categorize_failures`: đếm lỗi theo type.</li>
+              <li>`find_root_cause`: suy luận nguyên nhân từ metric thấp nhất.</li>
+              <li>`generate_improvement_log`: xuất bảng Markdown tracking.</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="metrics">
+      <div class="shell">
+        <div class="section-head">
+          <h2>Năm metric chính</h2>
+          <p>Ba metric đầu chấm answer, hai metric sau chấm retriever.</p>
+        </div>
+        <div class="metrics-grid">
+          <article class="metric">
+            <h3>Faithfulness</h3>
+            <p>Đo answer có dựa trên context hay đang bịa thông tin.</p>
+            <div class="formula">|answer ∩ context| / |answer|</div>
+          </article>
+          <article class="metric">
+            <h3>Relevance</h3>
+            <p>Đo answer có trả lời đúng trọng tâm question hay không.</p>
+            <div class="formula">|answer ∩ question| / |question|</div>
+          </article>
+          <article class="metric">
+            <h3>Completeness</h3>
+            <p>Đo answer có bao phủ đủ expected answer hay không.</p>
+            <div class="formula">|answer ∩ expected| / |expected|</div>
+          </article>
+          <article class="metric">
+            <h3>Context Recall</h3>
+            <p>Đo retrieved chunks có lấy đủ evidence cần thiết hay không.</p>
+            <div class="formula">|expected ∩ union(chunks)| / |expected|</div>
+          </article>
+          <article class="metric">
+            <h3>Context Precision</h3>
+            <p>Đo chunk liên quan có được xếp lên đầu danh sách retrieve không.</p>
+            <div class="formula">Average Precision@K</div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="walkthrough">
+      <div class="shell">
+        <div class="section-head">
+          <h2>Walkthrough chi tiết trong solution.py</h2>
+          <p>Phần này giải thích sâu hơn từng hàm: đầu vào là gì, xử lý ra sao, output dùng ở đâu.</p>
+        </div>
+
+        <div class="deep-grid">
+          <aside class="index-panel" aria-label="Mục lục walkthrough">
+            <a href="#data-models">1. Data models</a>
+            <a href="#tokenization">2. Token hóa và overlap</a>
+            <a href="#answer-metrics">3. Answer metrics</a>
+            <a href="#retrieval-metrics">4. Retrieval metrics</a>
+            <a href="#full-eval">5. run_full_eval</a>
+            <a href="#judge">6. LLMJudge</a>
+            <a href="#runner">7. BenchmarkRunner</a>
+            <a href="#analyzer">8. FailureAnalyzer</a>
+            <a href="#submission">9. File nộp bài</a>
+          </aside>
+
+          <div>
+            <article class="explain-panel" id="data-models">
+              <h3>1. Data models: đóng gói dữ liệu đánh giá</h3>
+              <p>
+                `QAPair` là một test case trong golden dataset. `EvalResult` là kết quả sau khi agent trả lời
+                và evaluator chấm điểm. Hai dataclass này giúp pipeline truyền dữ liệu rõ ràng thay vì dùng dict rời rạc.
+              </p>
+              <div class="example-grid">
+                <div class="example-card">
+                  <strong>QAPair.question</strong>
+                  <span>Câu hỏi đầu vào của user, ví dụ: "What is RAG?"</span>
+                </div>
+                <div class="example-card">
+                  <strong>expected_answer</strong>
+                  <span>Đáp án chuẩn do người thiết kế benchmark viết.</span>
+                </div>
+                <div class="example-card">
+                  <strong>retrieved_contexts</strong>
+                  <span>Danh sách chunk theo thứ tự retriever trả về, dùng cho context recall/precision.</span>
+                </div>
+              </div>
+              <div class="codebox">
+                <div class="label"><span>Ý tưởng chính</span><span>dataclass</span></div>
+                <pre><code>QAPair -> agent_fn(question) -> actual_answer
+EvalResult -> scores + passed + failure_type + overall_score()</code></pre>
+              </div>
+            </article>
+
+            <article class="explain-panel" id="tokenization">
+              <h3>2. Token hóa và overlap: nền tảng của metric heuristic</h3>
+              <p>
+                Vì bài lab không gọi LLM thật, các metric dùng word-overlap heuristic. Hàm `_tokenize`
+                chuyển text thành tập token lowercase, bỏ punctuation và stopwords như "the", "is", "a".
+              </p>
+              <details open>
+                <summary>Vì sao dùng set token?</summary>
+                <p>
+                  Set giúp tính giao nhau nhanh: token nào xuất hiện cả trong answer và context thì được xem là overlap.
+                  Cách này đơn giản, deterministic, dễ test, nhưng yếu với synonym/paraphrase.
+                </p>
+              </details>
+              <details>
+                <summary>Vì sao cần `_overlap_score`?</summary>
+                <p>
+                  Hàm này gom logic chia tỷ lệ và clamp điểm về 0-1. Nếu mẫu số rỗng, hàm trả 1.0 để tránh chia cho 0
+                  và đúng với yêu cầu trong docstring của bài.
+                </p>
+              </details>
+            </article>
+
+            <article class="explain-panel" id="answer-metrics">
+              <h3>3. Answer metrics: chấm câu trả lời của agent</h3>
+              <p>
+                Ba metric này là phần answer-side của RAGAS-inspired evaluation. Chúng trả về float từ 0 đến 1.
+              </p>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Hàm</th>
+                    <th>Mục tiêu</th>
+                    <th>Khi điểm thấp</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>`evaluate_faithfulness`</td>
+                    <td>Answer có grounded trong context không</td>
+                    <td>Dễ có hallucination hoặc context thiếu evidence</td>
+                  </tr>
+                  <tr>
+                    <td>`evaluate_relevance`</td>
+                    <td>Answer có bám sát question không</td>
+                    <td>Agent trả lời lệch ý hoặc prompt chưa rõ</td>
+                  </tr>
+                  <tr>
+                    <td>`evaluate_completeness`</td>
+                    <td>Answer có phủ đủ expected answer không</td>
+                    <td>Answer thiếu ý quan trọng</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="codebox">
+                <div class="label"><span>Ví dụ tính completeness</span><span>word overlap</span></div>
+                <pre><code>answer   = "RAG combines retrieval with generation"
+expected = "RAG stands for Retrieval Augmented Generation"
+
+overlap tokens = {"rag", "retrieval", "generation"}
+score = overlap / expected_tokens</code></pre>
+              </div>
+            </article>
+
+            <article class="explain-panel" id="retrieval-metrics">
+              <h3>4. Retrieval metrics: chấm bước get-context</h3>
+              <p>
+                Hai metric này không chấm answer, mà chấm danh sách chunk retriever lấy ra. Đây là điểm khác biệt quan trọng
+                giữa lỗi do retrieval và lỗi do generation.
+              </p>
+              <div class="decision-tree">
+                <div class="decision">
+                  <b>Context Recall thấp</b>
+                  <p>Retriever không lấy đủ evidence. Rerank không sửa được vì chunk cần thiết chưa xuất hiện.</p>
+                </div>
+                <div class="decision">
+                  <b>Context Precision thấp</b>
+                  <p>Evidence có thể đã được lấy, nhưng bị xếp sau noise. Reranking sẽ giúp tăng điểm.</p>
+                </div>
+              </div>
+              <div class="codebox">
+                <div class="label"><span>Average Precision</span><span>rank-aware</span></div>
+                <pre><code>Chunk relevant nếu:
+|chunk_tokens ∩ expected_tokens| / |expected_tokens| >= 0.1
+
+Precision@k = relevant trong top-k / k
+AP@K = trung bình Precision@k tại vị trí relevant</code></pre>
+              </div>
+            </article>
+
+            <article class="explain-panel" id="full-eval">
+              <h3>5. run_full_eval: nơi gom điểm và phân loại lỗi</h3>
+              <p>
+                Hàm này chạy đủ 3 answer metrics, quyết định pass/fail, rồi gán `failure_type`.
+                Đây là trái tim của evaluator.
+              </p>
+              <div class="decision-tree">
+                <div class="decision"><b>Pass</b><p>Khi faithfulness, relevance và completeness đều >= 0.5.</p></div>
+                <div class="decision"><b>hallucination</b><p>Nếu fail và faithfulness < 0.3.</p></div>
+                <div class="decision"><b>irrelevant</b><p>Nếu fail, faithfulness chưa quá thấp, nhưng relevance < 0.3.</p></div>
+                <div class="decision"><b>incomplete</b><p>Nếu fail, hai metric trên không quá thấp, nhưng completeness < 0.3.</p></div>
+                <div class="decision"><b>off_topic</b><p>Nếu fail nhưng không rơi vào ba ngưỡng cực thấp phía trên.</p></div>
+              </div>
+            </article>
+
+            <article class="explain-panel" id="judge">
+              <h3>6. LLMJudge: mô phỏng judge theo rubric</h3>
+              <p>
+                `LLMJudge` nhận một hàm `judge_llm_fn`. Trong production, hàm này có thể gọi GPT/Claude.
+                Trong test, nó là mock function trả JSON score.
+              </p>
+              <details open>
+                <summary>`score_response` làm gì?</summary>
+                <ul>
+                  <li>Tạo prompt gồm question, answer và rubric.</li>
+                  <li>Gọi `judge_llm_fn(prompt)`.</li>
+                  <li>Parse JSON score theo từng criterion.</li>
+                  <li>Nếu parse lỗi, fallback score 0.5 cho từng criterion.</li>
+                </ul>
+              </details>
+              <details>
+                <summary>`detect_bias` kiểm tra gì?</summary>
+                <ul>
+                  <li>Positional bias: câu trả lời ở vị trí đầu có thường cao hơn không.</li>
+                  <li>Leniency bias: điểm trung bình quá cao, trên 0.8.</li>
+                  <li>Severity bias: điểm trung bình quá thấp, dưới 0.3.</li>
+                </ul>
+              </details>
+            </article>
+
+            <article class="explain-panel" id="runner">
+              <h3>7. BenchmarkRunner: chạy toàn bộ golden dataset</h3>
+              <p>
+                Runner biến danh sách QA pairs thành danh sách EvalResult, rồi tạo report aggregate.
+              </p>
+              <div class="codebox">
+                <div class="label"><span>Luồng xử lý</span><span>BenchmarkRunner.run</span></div>
+                <pre><code>for pair in qa_pairs:
+    answer = agent_fn(pair.question)
+    result = evaluator.run_full_eval(answer, question, context, expected)
+    if pair.retrieved_contexts:
+        result.context_recall = evaluate_context_recall(...)
+        result.context_precision = evaluate_context_precision(...)
+    results.append(result)</code></pre>
+              </div>
+              <details open>
+                <summary>`run_regression` dùng để làm gì?</summary>
+                <p>
+                  Hàm này so sánh average metric của bản mới với baseline. Nếu metric mới giảm hơn 0.05,
+                  metric đó được đưa vào danh sách regressions và quality gate fail.
+                </p>
+              </details>
+            </article>
+
+            <article class="explain-panel" id="analyzer">
+              <h3>8. FailureAnalyzer: biến lỗi thành kế hoạch sửa</h3>
+              <p>
+                Đây là phần giúp bài lab không chỉ dừng ở "score thấp", mà đi tiếp tới root cause và action.
+              </p>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Hàm</th>
+                    <th>Vai trò</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>`categorize_failures`</td>
+                    <td>Đếm failure theo `failure_type` để thấy cụm lỗi lớn nhất.</td>
+                  </tr>
+                  <tr>
+                    <td>`find_root_cause`</td>
+                    <td>Dựa trên metric thấp nhất để gợi ý nguyên nhân.</td>
+                  </tr>
+                  <tr>
+                    <td>`generate_improvement_suggestions`</td>
+                    <td>Sinh danh sách hành động ưu tiên dựa trên pattern lỗi.</td>
+                  </tr>
+                  <tr>
+                    <td>`generate_improvement_log`</td>
+                    <td>Xuất Markdown table để tracking failure và fix.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="chips">
+                <span class="chip">hallucination -> guardrail</span>
+                <span class="chip">irrelevant -> prompt clarity</span>
+                <span class="chip">incomplete -> context coverage</span>
+                <span class="chip">off_topic -> routing check</span>
+              </div>
+            </article>
+
+            <article class="explain-panel" id="submission">
+              <h3>9. File nộp bài và ý nghĩa từng file</h3>
+              <p>
+                README yêu cầu không chỉ code pass test, mà còn có artifact giải thích quá trình benchmark và reflection.
+              </p>
+              <div class="decision-tree">
+                <div class="decision"><b>solution/solution.py</b><p>File implementation chính để test suite import.</p></div>
+                <div class="decision"><b>template.py</b><p>Đã đồng bộ để file đề bài trong IDE cũng hoàn chỉnh, không còn TODO.</p></div>
+                <div class="decision"><b>exercises.md</b><p>Chứa golden dataset 20 QA, benchmark result, rubric và reranking analysis.</p></div>
+                <div class="decision"><b>reflection.md</b><p>Báo cáo tiếng Việt có dấu: 5 Whys, improvement log, regression strategy.</p></div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="report">
+      <div class="shell">
+        <div class="section-head">
+          <h2>Kết quả benchmark và báo cáo</h2>
+          <p>Các số liệu này được dùng để điền `exercises.md` và `reflection.md`.</p>
+        </div>
+        <div class="two-col">
+          <div>
+            <table aria-label="Benchmark summary">
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th>Average</th>
+                  <th>Trực quan</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Faithfulness</td>
+                  <td>0.47</td>
+                  <td><div class="scorebar"><div class="bar"><i style="width:47%"></i></div><span>47%</span></div></td>
+                </tr>
+                <tr>
+                  <td>Relevance</td>
+                  <td>0.40</td>
+                  <td><div class="scorebar"><div class="bar relevance"><i style="width:40%"></i></div><span>40%</span></div></td>
+                </tr>
+                <tr>
+                  <td>Completeness</td>
+                  <td>0.83</td>
+                  <td><div class="scorebar"><div class="bar completeness"><i style="width:83%"></i></div><span>83%</span></div></td>
+                </tr>
+                <tr>
+                  <td>Pass rate</td>
+                  <td>30%</td>
+                  <td><div class="scorebar"><div class="bar"><i style="width:30%"></i></div><span>6/20</span></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <table aria-label="Failure distribution">
+              <thead>
+                <tr>
+                  <th>Failure type</th>
+                  <th>Số lượng</th>
+                  <th>Ý nghĩa</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>hallucination</td>
+                  <td>4</td>
+                  <td>Answer có claim không đủ grounded.</td>
+                </tr>
+                <tr>
+                  <td>irrelevant</td>
+                  <td>5</td>
+                  <td>Answer chưa bám sát câu hỏi.</td>
+                </tr>
+                <tr>
+                  <td>off_topic</td>
+                  <td>5</td>
+                  <td>Có lỗi nhưng chưa rơi vào ngưỡng cực thấp cụ thể.</td>
+                </tr>
+                <tr>
+                  <td>incomplete</td>
+                  <td>0</td>
+                  <td>Mock answers vẫn giữ nhiều từ khóa expected.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="files">
+      <div class="shell">
+        <div class="section-head">
+          <h2>File đã tác động</h2>
+          <p>Đây là các artifact cuối cùng trong repo sau khi hoàn thiện bài.</p>
+        </div>
+        <div class="files">
+          <article class="file">
+            <code>solution/solution.py</code>
+            <p>File nộp bài chính, chứa implementation đầy đủ cho tất cả class/function.</p>
+          </article>
+          <article class="file">
+            <code>template.py</code>
+            <p>Đã đồng bộ implementation để file đề bài không còn TODO khi mở trong IDE.</p>
+          </article>
+          <article class="file">
+            <code>exercises.md</code>
+            <p>Hoàn thiện warm-up, golden dataset, benchmark, rubric và reranking exercise.</p>
+          </article>
+          <article class="file">
+            <code>reflection.md</code>
+            <p>Báo cáo tiếng Việt có dấu: 5 Whys, clustering, improvement log, CI/CD strategy.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="shell">
+        <div class="callout">
+          <strong>Ghi chú:</strong> `pytest tests/ -v` không chạy được trong môi trường hiện tại vì thiếu package `pytest`.
+          Tuy nhiên file test dùng `unittest`, nên đã verify đầy đủ bằng `python tests\test_solution.py` với kết quả 39/39 test pass.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="shell">
+      Day 14 - AI Evaluation & Benchmarking Pipeline · Visualization generated for the completed lab.
+    </div>
+  </footer>
+</body>
+</html>
